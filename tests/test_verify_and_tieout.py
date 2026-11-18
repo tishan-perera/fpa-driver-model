@@ -53,6 +53,26 @@ def test_checked_in_draft_matches_the_writer() -> None:
     assert draft.read_text(encoding="utf-8") == draft_commentary(load_model())
 
 
+def test_workbook_has_no_author_metadata_or_template_leftovers() -> None:
+    import re
+    import zipfile
+
+    with zipfile.ZipFile(workbook_path()) as book:
+        names = book.namelist()
+        xml = "\n".join(
+            book.read(name).decode("utf-8", errors="replace")
+            for name in names
+            if name.endswith((".xml", ".rels"))
+        )
+    assert not any(name.startswith("docProps/") for name in names)
+    assert "guide.md" not in xml
+    assert "pre-built" not in xml.lower()
+    assert "to be built" not in xml.lower()
+    assert "creator" not in xml.lower()
+    assert "lastmodifiedby" not in xml.lower()
+    assert re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", xml) is None
+
+
 def test_repository_has_no_secret_shaped_text() -> None:
     banned = (
         "robinhood",
